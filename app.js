@@ -5,6 +5,26 @@ const stages=[
 ["👑","ثبات التاج"],["🌷","حديقة الملكة"],["💎","جوهرة التاج"],["🪞","مرآة الملكة"],["🦋","الفراشة الهاربة"],["✨","اجمعي النجوم"],["🕯️","أمنية منتصف الليل"],["🎾","مباراة التنس"],["🌙","طريق القمر"],["🏰","إلى القصر"],["🎁","صندوق الملكة"],["💌","الرسالة الضائعة"],["📸","ذكرى مدينة وسن"]
 ];
 let audioCtx;
+const journeyTrack = new Audio("journey.mp3");
+const letterTrack = new Audio("letter-ending.mp3");
+journeyTrack.loop = true;
+letterTrack.loop = true;
+journeyTrack.volume = 0.34;
+letterTrack.volume = 0.34;
+let activeTrack = null;
+function playTrack(track, restart=false){
+  if(activeTrack && activeTrack !== track){ activeTrack.pause(); activeTrack.currentTime = 0; }
+  activeTrack = track;
+  if(restart) track.currentTime = 0;
+  if(state.sound) track.play().catch(()=>{});
+}
+function startJourneyMusic(){ playTrack(journeyTrack, journeyTrack.currentTime===0); }
+function startLetterMusic(){ playTrack(letterTrack, true); }
+function syncTrackSound(){
+  if(!activeTrack) return;
+  if(state.sound) activeTrack.play().catch(()=>{}); else activeTrack.pause();
+}
+
 function tone(freq=600,d=.09,type="sine",vol=.035){if(!state.sound)return; audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(audioCtx.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d)}
 function music(kind="dream"){if(!state.sound)return; [523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,1.4,"sine",.012),i*260))}
 function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.append(x);setTimeout(()=>x.remove(),1800)}
@@ -16,7 +36,7 @@ function intro(){
 app.innerHTML=`<section class="screen hero"><div class="eyebrow">هدية صغيرة لشخص مو صغير بمكانته</div><h1>إلى الملكة وسن 👑</h1>
 <p>هذا المكان صُمم للملكة وسن شخصيًا.<br>لأن الملكة مو لازم تنتظر أحد يفضى عشان تلعب، سويت لك مكان كامل… <b>لك، وبس لك.</b><br>مدينة صغيرة، ألعاب، تحديات، وأشياء مخبأة بالطريق.</p>
 <div class="note"><b>ملاحظة:</b> هذا النوع من الأشياء ما يتسوى إلا للأميرات.<br><small>(وما أعرف أميرة غيرك أصلًا.)</small></div>
-<button class="btn" onclick="city()">ابدئي الرحلة 👑</button></section>`; music()}
+<button class="btn" onclick="startJourneyMusic();city()">ابدئي الرحلة 👑</button></section>`;}
 function city(){app.innerHTML=`<section class="screen hero"><div class="card"><div style="font-size:78px">🏰</div><h2>مرحبًا بك في مدينة الملكة وسن</h2>
 <p>تذكرين المدينة اللي قلتي لي عنها؟<br>هالمرة ما راح نتكلم عنها بس… <b>راح تدخلينها وتلعبين فيها بنفسك.</b><br>قدامك طريق إلى القصر، وكل مكان فيه شيء صغير ينتظرك.</p>
 <div class="note">🍎 <b>ملاحظة من إدارة المدينة:</b><br>للأسف، <b>مستر تفاحة</b> أخذ إجازة، وهو حاليًا غير موجود.<br>لذلك بتضطرين تكملين الرحلة بنفسك.</div>
@@ -37,7 +57,7 @@ function tennis(){shell(7,"🎾 سونا × محمد","أول من يصل 5 نق
 function moon(){let step=0,answers=[Math.random()<.5?"r":"l",Math.random()<.5?"r":"l",Math.random()<.5?"r":"l"];function r(){shell(8,"🌙 طريق القمر",`اختيار ${step+1} من 3 — اختاري الطريق الذي يلمع تحت القمر.`,`<div class="pathChoices"><button class="path" id="r">↗️</button><button class="path" id="l">↖️</button></div><p id="hint">راقبي…</p>`);let good=answers[step];$("#"+good).style.boxShadow="0 0 35px #ffd978";setTimeout(()=>{$$("#r,#l").forEach(e=>e.style.boxShadow="none");$("#hint").textContent="اختاري";["r","l"].forEach(k=>$("#"+k).onclick=()=>{if(k!==good)toast("القمر دلّك على الطريق الصح 🌙");step++;if(step<3)r();else next(8,"شعرك الذهبي، عيونك، ابتسامتك، وحتى ذوقك بالملابس… كل شيء فيك له لمسته الخاصة.")})},1000)}r()}
 function palace(){shell(9,"🏰 إلى القصر","ثلاث لمسات وتفتح بوابة قصر الملكة.",`<div class="gate" id="gate">🏰</div><p id="pc">0 / 3</p><button class="btn" id="gb">أضيئي الطريق ✨</button>`);let n=0;$("#gb").onclick=()=>{n++;tone(500+n*100,.2);$("#pc").textContent=`${n} / 3`;$("#gate").style.filter=`drop-shadow(0 0 ${20+n*18}px #ffd978)`;if(n===3)next(9,"قصر الملكة سونا 👑 — وصلتي.")}}
 function gift(){shell(10,"🎁 صندوق الملكة","فيه شيء ينتظرك هنا.",`<div class="gift" id="gift">🎁</div><p>اضغطي الهدية</p>`);$("#gift").onclick=()=>{shell(10,"🎁 الهدية","ركبي القطع الأربع — سهلة، وعد.",`<div class="puzzle">${["👑","💗","✨","💌"].map((x,i)=>`<button class="puz" data-i="${i}">❔</button>`).join("")}</div><p id="pz">0 / 4</p>`);let n=0;$$(".puz").forEach((e,i)=>e.onclick=()=>{if(e.textContent!=="❔")return;e.textContent=["👑","💗","✨","💌"][i];n++;tone(620+n*80);$("#pz").textContent=`${n} / 4`;if(n===4)next(10,"فيه شيء كان ينتظرك هنا من البداية. 💌")})}}
-function letter(){save(11);app.innerHTML=`<section class="screen"><div class="card letter"><div style="text-align:center;font-size:70px">💌</div><h2 class="game-title">إلى وسن</h2>
+function letter(){save(11);startLetterMusic();app.innerHTML=`<section class="screen"><div class="card letter"><div style="text-align:center;font-size:70px">💌</div><h2 class="game-title">إلى وسن</h2>
 <p><b>كنتي وما زلتِ شخصًا مميزًا لي ولقلبـي.</b></p>
 <p>من أول يوم عرفتك فيه، وأنتِ تضيفين السعادة والفرح والبهجة لحياتي. أغمرتيني بضحكتك وسوالفك اللي ما أمل منها، وغرقت بدلعك وكياتتك ولطفك.</p>
 <p>أحب كيف إنك جميلة، وملكة، ودلوعة. وأحب كيف إنك ذكية، ومهندسة، ومثابرة ومجتهدة. وأحسد الناس اللي حولك لأنك موجودة في حياتهم.</p>
@@ -48,7 +68,7 @@ function letter(){save(11);app.innerHTML=`<section class="screen"><div class="ca
 <p style="text-align:center;font-size:30px;font-weight:800;color:#ffd0e7">وسن.</p>
 <p style="text-align:center"><b>وهذا أعظم من أي مدحة ممكن أكتبها لك.</b></p>
 <div class="poem">إن قيلَ مَن بينَ الجميلاتِ أميرةٌ؟<br>قلتُ: التي ضحكتْ، فبانتْ لي سُونا.</div>
-<div class="actions"><button class="btn" onclick="stage(12)">اصنعي ذكرى المدينة 📸</button></div></div></section>`;music("letter")}
+<div class="actions"><button class="btn" onclick="stage(12)">اصنعي ذكرى المدينة 📸</button></div></div></section>`;}
 function memory(){save(12);app.innerHTML=`<section class="screen"><div class="card"><h2 class="game-title">📸 ذكرى من مدينة وسن</h2><p class="subtitle">مستحيل الملكة تزور مدينتها كاملة وتطلع بدون ذكرى.</p>
 <h3>كيف تبين تظهرين في الصورة؟</h3><div class="actions"><label class="btn">📱 صورة من جوالي<input id="photo" type="file" accept="image/*" hidden></label><button class="btn secondary" id="alt">👑 صورة بديلة</button></div>
 <div class="note">🔒 صورتك تُقرأ داخل جهازك فقط ولا يتم رفعها أو إرسالها أو حفظها عندي أو عند أي أحد.<br><small>(مع إنه ودي 👀)</small></div>
@@ -56,6 +76,6 @@ function memory(){save(12);app.innerHTML=`<section class="screen"><div class="ca
 <div id="preview"></div></div></section>`;$("#alt").onclick=()=>$("#alts").style.display="grid";$$(".avatar-card").forEach(e=>e.onclick=()=>{state.avatar=e.dataset.a;renderMemory()});$("#photo").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{state.photo=r.result;renderMemory()};r.readAsDataURL(f)}}
 function renderMemory(){let av=state.photo?`<img src="${state.photo}">`:state.avatar;$("#preview").innerHTML=`<div class="memory-card" id="mc"><div class="eyebrow">ذكرى من الرحلة</div><h2>👑 سونا</h2><h3>ملكة مدينة وسن</h3><div class="memory-avatar">${state.photo?av:state.avatar}</div><div class="badges"><span class="badge">👑 حافظت على التاج</span><span class="badge">🌷 زيّنت الحديقة</span><span class="badge">💎 وجدت الجوهرة</span><span class="badge">🎾 هزمت محمد (للأسف)</span><span class="badge">🌙 عبرت طريق القمر</span><span class="badge">🏰 وصلت للقصر</span></div><h3 style="color:#ffe29a">ملكة المدينة للأبد ✨</h3></div><div class="actions"><button class="btn" onclick="downloadCard()">📸 حفظ الذكرى</button><button class="btn secondary" onclick="ending()">إنهاء الرحلة</button></div>`}
 window.downloadCard=()=>{let c=document.createElement("canvas"),x=c.getContext("2d");c.width=1080;c.height=1350;let g=x.createLinearGradient(0,0,1080,1350);g.addColorStop(0,"#4a225e");g.addColorStop(1,"#160c20");x.fillStyle=g;x.fillRect(0,0,c.width,c.height);x.textAlign="center";x.fillStyle="#ffd978";x.font="bold 56px sans-serif";x.fillText("👑 سونا",540,180);x.fillStyle="white";x.font="bold 44px sans-serif";x.fillText("ملكة مدينة وسن",540,250);x.font="72px sans-serif";x.fillText(state.photo?"📸":state.avatar,540,500);x.font="36px sans-serif";["👑 حافظت على التاج","🌷 زيّنت الحديقة","💎 وجدت الجوهرة","🎾 هزمت محمد (للأسف)","🌙 عبرت طريق القمر","🏰 وصلت للقصر"].forEach((t,i)=>x.fillText(t,540,690+i*70));x.fillStyle="#ffd978";x.font="bold 42px sans-serif";x.fillText("ملكة المدينة للأبد ✨",540,1180);let a=document.createElement("a");a.download="wasan-city-memory.png";a.href=c.toDataURL("image/png");a.click();toast("تم تجهيز الذكرى 👑")}
-function ending(){localStorage.setItem("wasanCompleted","yes");app.innerHTML=`<section class="screen hero"><div style="font-size:90px">👑✨</div><h1>انتهت الرحلة</h1><p>بس المدينة ما راح تروح لأي مكان.<br><b>كل ما ودك ترجعين، بتلقينها تنتظرك.</b><br><br>وأهلًا بك دائمًا يا سونا.</p><div class="actions"><button class="btn" onclick="map()">العودة إلى مدينة وسن 🏰</button><button class="btn secondary" onclick="intro()">البداية</button></div></section>`;music()}
-$("#soundBtn").onclick=()=>{state.sound=!state.sound;localStorage.setItem("wasanSound",state.sound?"on":"off");$("#soundBtn").textContent=state.sound?"🔊":"🔇";if(state.sound){tone();music()}}
+function ending(){localStorage.setItem("wasanCompleted","yes");app.innerHTML=`<section class="screen hero"><div style="font-size:90px">👑✨</div><h1>انتهت الرحلة</h1><p>بس المدينة ما راح تروح لأي مكان.<br><b>كل ما ودك ترجعين، بتلقينها تنتظرك.</b><br><br>وأهلًا بك دائمًا يا سونا.</p><div class="actions"><button class="btn" onclick="map()">العودة إلى مدينة وسن 🏰</button><button class="btn secondary" onclick="intro()">البداية</button></div></section>`;}
+$("#soundBtn").onclick=()=>{state.sound=!state.sound;localStorage.setItem("wasanSound",state.sound?"on":"off");$("#soundBtn").textContent=state.sound?"🔊":"🔇";syncTrackSound();if(state.sound)tone()}
 $("#soundBtn").textContent=state.sound?"🔊":"🔇";$("#homeBtn").onclick=map; intro();
